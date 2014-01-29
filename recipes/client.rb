@@ -24,12 +24,16 @@
 include_recipe 'chef-splunk::user'
 include_recipe 'chef-splunk::install_forwarder'
 
-splunk_servers = search(# ~FC003
-  :node,
-  "splunk_is_server:true AND chef_environment:#{node.chef_environment}"
-).sort! do
-    |a, b| a.name <=> b.name
-  end
+if Chef::Config[:solo]
+  Chef::Log.warn("This recipe uses search. Chef Solo does not support search")
+else
+  splunk_servers = search(# ~FC003
+    :node,
+    "splunk_is_server:true AND chef_environment:#{node.chef_environment}"
+  ).sort! do
+      |a, b| a.name <=> b.name
+    end
+end
 
 # ensure that the splunk service resource is available without cloning
 # the resource (CHEF-3694). this is so the later notification works,
