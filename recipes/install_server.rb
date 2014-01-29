@@ -1,7 +1,6 @@
-# Copyright 2013, Nordstrom, Inc.
 #
 # Cookbook Name:: splunk
-# Recipe:: default
+# Recipe:: install_server
 #
 # Author: Joshua Timberman <joshua@getchef.com>
 # Copyright (c) 2014, Chef Software, Inc <legal@getchef.com>
@@ -19,14 +18,6 @@
 # limitations under the License.
 #
 
-if node['splunk']['disabled']
-  include_recipe 'chef-splunk::disabled'
-  Chef::Log.debug('Splunk is disabled on this node.')
-  return
-end
-
-if node['splunk']['is_server']
-  include_recipe 'chef-splunk::server'
-else
-  include_recipe 'chef-splunk::client'
+splunk_installer 'splunk' do
+  url node['splunk']['server']['url']
 end
