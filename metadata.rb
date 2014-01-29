@@ -1,7 +1,9 @@
 name             'chef-splunk'
-maintainer       'Nordstrom, Inc.'
-maintainer_email 'CHANGE_ME_TO_SOMETHING_APPROPRIATE@nordstrom.com'
-license          'All rights reserved'
-description      'Installs/Configures chef-splunk'
-long_description 'Longer version of description: Installs/Configures chef-splunk'
-version          '0.0.0'
+maintainer       'Chef Software, Inc.'
+maintainer_email 'cookbooks@getchef.com'
+license          'Apache 2.0'
+description      'Manage Splunk Enterprise or Splunk Universal Forwarder'
+version          '1.0.1'
+
+# for secrets management in setup_auth recipe
+depends 'chef-vault', '>= 1.0.4'

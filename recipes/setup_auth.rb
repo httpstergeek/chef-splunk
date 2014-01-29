@@ -1,7 +1,6 @@
-# Copyright 2013, Nordstrom, Inc.
 #
 # Cookbook Name:: splunk
-# Recipe:: default
+# Recipe:: setup_auth
 #
 # Author: Joshua Timberman <joshua@getchef.com>
 # Copyright (c) 2014, Chef Software, Inc <legal@getchef.com>
@@ -18,15 +17,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+include_recipe 'chef-vault'
 
-if node['splunk']['disabled']
-  include_recipe 'chef-splunk::disabled'
-  Chef::Log.debug('Splunk is disabled on this node.')
-  return
+splunk_auth_info = chef_vault_item(:vault, "splunk_#{node.chef_environment}")['auth']
+user, pw = splunk_auth_info.split(':')
+
+execute "#{splunk_cmd} edit user #{user} -password '#{pw}' -role admin -auth admin:changeme" do
+  not_if { ::File.exists?("#{splunk_dir}/etc/.setup_#{user}_password") }
 end
 
-if node['splunk']['is_server']
-  include_recipe 'chef-splunk::server'
-else
-  include_recipe 'chef-splunk::client'
+file "#{splunk_dir}/etc/.setup_#{user}_password" do
+  content 'true\n'
+  owner 'root'
+  group 'root'
+  mode 00600
 end

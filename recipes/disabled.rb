@@ -1,7 +1,6 @@
-# Copyright 2013, Nordstrom, Inc.
 #
 # Cookbook Name:: splunk
-# Recipe:: default
+# Recipe:: disabled
 #
 # Author: Joshua Timberman <joshua@getchef.com>
 # Copyright (c) 2014, Chef Software, Inc <legal@getchef.com>
@@ -19,14 +18,24 @@
 # limitations under the License.
 #
 
-if node['splunk']['disabled']
-  include_recipe 'chef-splunk::disabled'
-  Chef::Log.debug('Splunk is disabled on this node.')
+unless node['splunk']['disabled']
+  Chef::Log.debug('The chef-splunk::disabled recipe was added to the node,')
+  Chef::Log.debug('but the attribute to disable splunk was not set.')
   return
 end
 
-if node['splunk']['is_server']
-  include_recipe 'chef-splunk::server'
-else
-  include_recipe 'chef-splunk::client'
+service 'splunk' do
+  ignore_failure true
+  action :stop
+end
+
+%w{splunk splunkforwarder}.each do |pkg|
+  package pkg do
+    ignore_failure true
+    action :remove
+  end
+end
+
+execute "#{splunk_dir}/bin/splunk disable boot-start" do
+  ignore_failure true
 end
