@@ -7,10 +7,10 @@ describe 'chef-splunk::upgrade' do
       :platform => 'ubuntu',
       :version => '12.04'
     ) do |node|
-      node.set['splunk']['upgrade_enabled'] = true
-      node.set['splunk']['accept_license'] = true
-      node.set['splunk']['upgrade']['forwarder_url'] = 'http://splunk.example.com/forwarder/package437.deb'
-    end.converge(described_recipe)
+        node.set['splunk']['upgrade_enabled'] = true
+        node.set['splunk']['accept_license'] = true
+        node.set['splunk']['upgrade']['forwarder_url'] = 'http://splunk.example.com/forwarder/package437.deb'
+      end.converge(described_recipe)
   end
 
   it 'stops splunk with a special service resource' do

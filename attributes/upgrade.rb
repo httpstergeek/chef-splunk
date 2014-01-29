@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 if node['splunk']['upgrade_enabled']
-  
+
   case node['platform_family']
   when 'rhel'
     if node['kernel']['machine'] == 'x86_64'

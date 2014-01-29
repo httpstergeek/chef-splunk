@@ -8,8 +8,8 @@ describe 'chef-splunk::install_server' do
         :platform => 'ubuntu',
         :version => '12.04'
       ) do |node|
-        node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.deb'
-      end.converge(described_recipe)
+          node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.deb'
+        end.converge(described_recipe)
     end
 
     it 'caches the package with remote_file' do
@@ -30,8 +30,8 @@ describe 'chef-splunk::install_server' do
         :platform => 'centos',
         :version => '6.4'
       ) do |node|
-        node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.rpm'
-      end.converge(described_recipe)
+          node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.rpm'
+        end.converge(described_recipe)
     end
 
     it 'caches the package with remote_file' do
@@ -52,8 +52,8 @@ describe 'chef-splunk::install_server' do
         :platform => 'omnios',
         :version => '151002'
       ) do |node|
-        node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.pkg.Z'
-      end.converge(described_recipe)
+          node.set['splunk']['server']['url'] = 'http://splunk.example.com/server/package.pkg.Z'
+        end.converge(described_recipe)
     end
 
     it 'caches the package with remote_file' do # ~FC005
