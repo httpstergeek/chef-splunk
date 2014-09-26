@@ -1,0 +1,14 @@
+# This file is managed by Chef in <%= "#{@resource.cookbook_name}::#{@resource.recipe_name}" %>.
+# Any manual modifications to this file will be short-lived.
+*nat
+:PREROUTING ACCEPT [7:602]
+:POSTROUTING ACCEPT [93:8197]
+:OUTPUT ACCEPT [93:8197]
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 9808 -j REDIRECT --to-ports 8089
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 9880 -j REDIRECT --to-ports 8089
+COMMIT
+*filter
+:INPUT ACCEPT [1531:808872]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [798:129388]
+COMMIT
