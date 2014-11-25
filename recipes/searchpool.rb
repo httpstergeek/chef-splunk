@@ -2,7 +2,6 @@
 # Cookbook Name:: chef-splunk
 # Recipe:: searchpool
 #
-#
 # All rights reserved - Do Not Redistribute
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,11 +27,12 @@ include_recipe 'chef-splunk::nfs_server'
 # directories to create and copy from
 splunk_dirs =  %w{apps users system}
 
+nfs_dir = node[:splunk][:searchpool][:pool_mnt]
 # copies directories nesscary for directories to nfs mount nesscary
 # for splunk search head pooling
 splunk_dirs.each do |dir|
   dir = ::File.join('etc', dir)
-  splunk_mnt_dir = ::File.join(node[:splunk][:searchpool][:pool_mnt], dir)
+  splunk_mnt_dir = ::File.join(nfs_dir, dir)
 
   # stops splunk service if splunk_mnt_dir not found
   service 'splunk' do
@@ -60,15 +60,17 @@ splunk_dirs.each do |dir|
   end
 end
 
-
 if node[:splunk_upgrade]
-  directory = ::File.join("#{splunk_dir}", 'etc', 'apps', '{framework,gettingstarted,legacy,search}')
-  execute 'copy_splunk_apps' do
-    command   "cp -rp #{directory} #{splunk_mnt_dir}"
-    action    :nothing
-    notifies  :restart, 'service[splunk]'
+  app_dirs =  %w{framework gettingstarted legacy search launcher SplunkForwarder SplunkLightForwarder}
+  app_dirs.each do |dir|
+    src_directory = ::File.join(splunk_dir, 'etc', 'apps', dir)
+    dest_directory = ::File.join(nfs_dir, 'etc', 'apps')
+    Chef::Log.debug("source dir: #{src_directory}")
+    Chef::Log.debug("destination dir: #{dest_directory}")
+    execute 'copy_splunk_apps' do
+      command   "cp -rfp #{src_directory} #{dest_directory}"
+    end
   end
-
 end
 
 # Template sets deployment client configuration

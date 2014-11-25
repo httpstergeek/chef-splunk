@@ -17,12 +17,10 @@
 # limitations under the License.
 #
 
-Chef::Log.debug('Checking for updates...')
-splunk_version_file = ::File.join("#{splunk_dir}", 'etc', 'splunk.version')
+splunk_version_file = ::File.join(splunk_dir, 'etc', 'splunk.version')
 Chef::Log.debug("Splunk.version directory: #{splunk_version_file}")
 splunk_upgrade = false
 splunk_url = node['splunk']['server']['url']
-Chef::Log.debug("Splunk url: #{splunk_url}")
 is_installed = ::File.exist?(splunk_version_file)
 
 Chef::Log.debug("Splunk installed? #{is_installed}")
@@ -41,7 +39,7 @@ if is_installed
   Chef::Log.debug("Installed Splunk Version: #{current_splunk_version}")
   current_splunk_build = current_splunk[1].split('=')[1]
   Chef::Log.debug("Installed Splunk Build: #{current_splunk_build}")
-  splunk_upgrade = (current_splunk_version.strip! != splunk_upgrade_version.strip! && Integer(splunk_upgrade_build) < Integer(current_splunk_build))
+  splunk_upgrade = (current_splunk_version.strip! != splunk_upgrade_version.strip! && Integer(splunk_upgrade_build) > Integer(current_splunk_build))
 end
 
 Chef::Log.debug("Upgrade Splunk? #{splunk_upgrade}")
@@ -60,32 +58,12 @@ end
 Chef::Log.debug('Installing...')
 splunk_installer 'splunk' do
   url splunk_url
+  notifies :run, 'execute[splunk-unattended-upgrade]', :immediately
 end
 
 # migration_logs = ::Dir.glob("#{splunk_dir}/var/log/splunk/migration.log.*")
-Chef::Log.debug('Accepting license...')
-Chef::Log.debug('Complete')
 execute 'splunk-unattended-upgrade' do
+  Chef::Log.debug('Accepting license...')
   command "#{splunk_cmd} start --accept-license --answer-yes"
-  only_if { splunk_upgrade }
-  not_if { !node[:splunk][:accept_license] }
-end
-Chef::Log.debug("Checking for upgrade errors..")
-
-# Grabs the migration log to check for upgrade errors. Assumes that the last 
-# last element in the list is the most recent upgrade log.
-# This doesn't execute correctly (need to delay function or do lazy load/lambda).
-ruby_block 'check_upgrade_errors' do
-  block do 
-    migration_dir = ::File.join("#{splunk_dir}", 'var', 'log', 'splunk', 'migration.log.*')
-    migration_logs = ::Dir.glob(migration_dir)
-    Chef::Log.debug("Current migration logs: #{migration_logs}")
-    most_recent_migration_file = migration_logs.last
-    Chef::Log.debug("Most recent migration log: #{most_recent_migration_file}")
-    unless ::File.open(most_recent_migration_file, 'r').readlines.grep(/(?i)(copying)/).empty?
-      Chef::Log.fatal("There was something wrong with the upgrade of splunk. Check the migration log file in #{most_recent_migration_file}. Stopping splunk...")
-      raise
-    end
-  end
   only_if { splunk_upgrade }
 end

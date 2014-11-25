@@ -1,4 +1,4 @@
-# encoding: utf-8   
+# encoding: utf-8
 # Cookbook Name:: chef-splunk
 # Attributes:: default
 #
@@ -10,56 +10,64 @@ default[:chef_vault][:version] = '2.2.0'
 default[:chef_vault][:source] = '--clear-sources --source http://rubygems.org'
 default[:splunk][:install_git] = false
 default[:splunk][:is_server] = true
-default[:splunk][:accept_license] = true
+default[:splunk][:accept_license] = false
 default[:splunk][:type] = nil
-default[:splunk][:server][:url] = 'http://10.16.133.168/pub/chef-data/software/splunk/splunk-6.0.1-189883-linux-2.6-x86_64.rpm'
+default[:splunk][:server][:url] = ''
 default[:splunk][:set_db] = {
   enable: false,
   path:   '/opt/splunk/mnt/index01'
 }
+
 default[:splunk][:mgmt_port] = '8089'
-default[:splunk][:license_uri] = nil
-default[:splunk][:bypass_auth] = true
+default[:splunk][:license_uri] = ''
+default[:splunk][:bypass_auth] = false
 
 default[:splunk][:secret] = {
   data_bag:       'vault',
-  data_bag_item:  'splunk_secret_prod',
+  data_bag_item:  'splunk_secret',
   file:  'splunk.secret'
 }
 
 default[:splunk][:passwd] = {
   data_bag:       'vault',
-  data_bag_item:  'splunk_passwd_prod',
+  data_bag_item:  'splunk_passwd',
   file:           'passwd'
 }
 
+default[:splunk][:ui_prefs] = {
+  enable: false,
+  dispatch_etime: '-15m',
+  dispatch_ltime: 'now',
+  search_mode: 'fast'
+}
+
 default[:splunk][:distsearch] = {
-  enable_distsearch: false,
+  enable_distsearch: true,
   share_bundles:   false,
-  search_peers: %w{33.33.33.11 33.33.33.25},
+  search_peers: %w{},
   mounted_bundles: true,
   search_bundles:  [
     {
-      search_heads:    %w{33.33.33.12 33.33.33.18},
+      search_heads:    %w{},
       bundle_location: {
-        nfs_device:       '33.33.33.13:/mnt/search_head_pooling',
-        mount_location:   '/mnt/search_head_pooling/ga',
-        symlink_location: '/opt/shared_bundles/ga'
+        nfs_device:       '',
+        mount_location:   '',
+        symlink_location: ''
       }
     },
   ]
 }
 
 default[:splunk][:searchpool] = {
-  enable_pool:      'false',
-  pool_server:      '33.33.33.13',
-  pool_mnt:         '/mnt/search_head_pooling',
-  symlink_location: '/opt/search_head_pooling',
+  enable_pool:      'disabled',
+  pool_server:      '',
+  pool_mnt:         '',
+  symlink_location: '',
   network:          '*',
 }
 
 default[:splunk][:deployment_options] = {
-  deployment_uri: 'splunkdeploy.company.net',
+  deployment_uri: '',
   phonehome:      '300'
 }
 
@@ -69,8 +77,8 @@ default[:splunk][:webserver_options] = {
 }
 
 default[:splunk][:ssl_options] = {
-  enable_ssl:   false,
-  data_bag:      'vault',
+  enable_ssl:    false,
+  data_bag:      'splunk',
   data_bag_items: {
     webserver_cert: 'splunk_webcert_sandbox',
     webserver_key:  'splunk_webkey_sandbox'
@@ -80,13 +88,26 @@ default[:splunk][:ssl_options] = {
   group:         'splunk'
 }
 
+default[:splunk][:ssl_backend_options] = {
+  enable_ssl:    false,
+  data_bag:      'splunk',
+  data_bag_items: {
+    backend_cert: 'splunk_apicert_sandbox',
+    backend_ca_cert: 'splunk_cacert_sandbox',
+    backend_cert_key_pass: 'splunk_apicertkeypass_sandbox'
+  },
+  mode:          0660,
+  owner:         'splunk',
+  group:         'splunk'
+}
+
 default[:splunk][:receiver_options] = {
   splunktcp_ssl: {
     enable_splunktcp_ssl: false,
-    data_bag:             'vault',
+    data_bag:             'splunk',
     data_bag_items: {
-      root_ca:            'splunk_recrootca_sandbox',
-      server_cert:        'splunk_recservercert_sandbox',
+      root_ca:              'splunk_recrootca_sandbox',
+      server_cert:          'splunk_recservercert_sandbox',
     },
     port:                 '9998',
     mode:                 0660,
@@ -94,7 +115,7 @@ default[:splunk][:receiver_options] = {
     group:                'splunk',
   },
   splunktcp: {
-    enable_splunktcp: false,
+    enable_splunktcp: true,
     port:             '9997'
   },
   udp: {
@@ -160,9 +181,13 @@ default[:splunk][:conf_files] = {
     file: "#{splunk_system}/outputs.conf",
     erb:  'system-outputs.conf.erb',
   },
+  ui_prefs: {
+    file:  "#{splunk_system}/ui_prefs.conf",
+    erb:   'system-ui-prefs.conf.erb'
+  },
   perms: {
     mode:  0664,
-    owner: 'splunk',
-    group: 'splunk'
+    owner: 'root',
+    group: 'root'
   }
 }

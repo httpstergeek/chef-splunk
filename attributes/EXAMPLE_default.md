@@ -26,7 +26,6 @@ default[:splunk][:install_git] = false
 default[:splunk][:is_server] = true
 default[:splunk][:accept_license] = true
 default[:splunk][:type] = nil
-default[:splunk][:server][:url] = 'http://10.16.1.1/pub/chef-data/software/splunk/splunk-6.0.1-189883-linux-2.6-x86_64.rpm'
 default[:splunk][:set_db] = {      
   enable: false,                   
   path:   '/opt/splunk/mnt/index01'
@@ -46,6 +45,13 @@ default[:splunk][:passwd] = {
   data_bag:       'vault',
   data_bag_item:  'splunk_passwd_prod',
   file:           'passwd'
+}
+
+default[:splunk][:ui_prefs][:enable] = {
+  enable: false,
+  dispatch_etime: '-15m',
+  dispatch_ltime: 'now',
+  search_mode: 'fast'
 }
 
 default[:splunk][:distsearch] = {
@@ -74,7 +80,7 @@ default[:splunk][:searchpool] = {
 }
 
 default[:splunk][:deployment_options] = {
-  deployment_uri: 'splunkdeploy.company.net',
+  deployment_uri: 'splunkdeploy.net',
   phonehome:      '300'
 }
 
@@ -89,6 +95,19 @@ default[:splunk][:ssl_options] = {
   data_bag_items: {
     webserver_cert: 'splunk_webcert_sandbox',
     webserver_key:  'splunk_webkey_sandbox'
+  },
+  mode:          0660,
+  owner:         'splunk',
+  group:         'splunk'
+}
+
+default[:splunk][:ssl_backend_options] = {
+  enable_ssl:    false,
+  data_bag:      'vault',
+  data_bag_items: {
+    backend_cert: 'splunk_apicert_sandbox',
+    backend_ca_cert: 'splunk_cacert_sandbox',
+    backend_cert_key_pass: 'splunk_apicertkeypass_sandbox'
   },
   mode:          0660,
   owner:         'splunk',
@@ -174,6 +193,10 @@ default[:splunk][:conf_files] = {
   outputs: {
     file: "#{splunk_system}/outputs.conf",
     erb:  'system-outputs.conf.erb',
+  },
+  ui_prefs: {
+    file:  "#{splunk_system}/ui_prefs.conf",
+    erb:   'system-ui_refs.conf.erb'
   },
   perms: {
     mode:  0664,

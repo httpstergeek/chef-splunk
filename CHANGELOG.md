@@ -1,5 +1,19 @@
 # CHANGELOG chef-splunk
 
+# 1.0.0
+ * includes upgrade logic for all splunk roles
+ * ui-prefs.conf now managed
+ * added safe defaults for default.rb
+ * added new default attributes ui_prefs
+ * Merged chef-splunk into nord_chef-splunk and updated depeancies
+
+# 0.5.22
+ * added ui_prefs.conf to be managed by template
+
+# 0.5.21
+ * update server_conf.rb recipe to manage server.conf and use databags. Also
+   updated system_server.conf.rb for recipe updates
+
 # 0.5.20
  * Added "status: true" for iptables service check
 

@@ -1,7 +1,7 @@
 # encoding: utf-8
 # Cookbook Name:: chef-splunk
 # Recipe:: splunk_includes
-# Author: Bernardo Macias <bmacias@httpstergeek.com>
+# Author: Bernardo Macias <bmacias84@gmail.com>
 #
 # All rights reserved - Do Not Redistribute
 #
@@ -46,9 +46,9 @@ end
 
 # Recipe used store all common includes
 include_recipe 'java'
-include_recipe 'nix_server'
+include_recipe 'tuned' if %w{indexer search searchpool}.include?(node[:splunk][:type])
 include_recipe 'chef-splunk::user' if Chef::Config[:solo]
-#include_recipe 'chef-splunk::upgrade' if
+#include_recipe 'chef-splunk::upgrade'
 include_recipe 'chef-splunk::install_server'
 include_recipe 'chef-splunk::splunk_secrets' unless node[:splunk][:bypass_auth]
 include_recipe 'chef-splunk::service'

@@ -1,7 +1,7 @@
 # encoding: utf-8
 # Cookbook Name:: chef-splunk
 # Recipe:: splunk_secrets
-# Author: Bernardo Macias <bmacias@httpstergeek.com>
+# Author: Bernardo Macias <bmacias84@gmail.com>
 #
 # All rights reserved - Do Not Redistribute
 #

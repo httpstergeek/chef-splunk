@@ -3,7 +3,7 @@
 # Cookbook Name:: chef-splunk
 # Recipe:: default
 #
-# Author: Bernardo Macias <bmacias@httpstergeek.com>
+# Author: Bernardo Macias <bmacias84@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ if node[:splunk][:disabled]
 end
 
 if node[:splunk][:is_server]
-  include_recipe "nord_chef-splunk::#{node[:splunk][:type]}"
+  include_recipe "chef-splunk::#{node[:splunk][:type]}"
 else
   include_recipe 'chef-splunk::client'
 end

@@ -1,7 +1,7 @@
 # encoding: utf-8
 # Cookbook Name:: chef-splunk
 # Recipe:: imforwarder
-# Author: Bernardo Macias <bmacias@httpstergeek.com>
+# Author: Bernardo Macias <bmacias94@gmail.com>
 #
 # All rights reserved - Do Not Redistribute
 #

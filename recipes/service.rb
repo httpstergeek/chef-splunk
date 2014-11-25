@@ -24,10 +24,6 @@ if node['splunk']['accept_license']
   end
 end
 
-yum_package 'chef' do
-  action :upgrade
-end
-
 service 'splunk' do
   supports :status => true, :restart => true
   provider Chef::Provider::Service::Init

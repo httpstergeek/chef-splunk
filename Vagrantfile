@@ -5,12 +5,13 @@
 
 Vagrant.configure("2") do |config|
   hostetc                         = false
-  user                            = "#{ENV['USER']}"
+  user                            = "#{ENV['user']}"
   config.ssh.username             = "vagrant"
-  base_box_url                    = "#{ENV['box_url']}"
-  chef_base_path                  = "#{ENV['HOME']}/chef/cookbooks"
-  databag_path                    = "/Users/#{ENV['USER']}/git/chefcookbooks/data_bags"
-  data_bag_secret_key_path        = "/Users/#{ENV['USER']}/git/chefcookbooks/data_bags/vault"
+  base_box_url                    = ""
+  boxname                         = ""
+  chef_base_path                  = "#{ENV['cookbooks']}/cookbooks"
+  databag_path                    = "#{ENV['cookbooks']}/data_bags"
+  data_bag_secret_key_path        = "#{ENV['cookbooks']}/data_bags/vault"
   config.berkshelf.berksfile_path = "./Berksfile"
   config.berkshelf.enabled        = true
 # config.omnibus.chef_version    = :latest
@@ -38,15 +39,11 @@ Vagrant.configure("2") do |config|
   config.vm.define :indexer do |box|
     type                = 'indexer'
     box.vm.hostname     = "#{ENV['USER']}-#{type}"
-    box.vm.box          = 'rhel64'
-    box.vm.synced_folder "/Users/#{ENV['USER']}/.chef", '/etc/chef'   
+    box.vm.box          = boxname
+    box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'   
     box.vm.synced_folder databag_path, "/var/chef/data_bags"
-    box.vm.box_url      = File.join(base_box_url, 'vagrant-RHEL6_4_v1_1.box')
     box.vm.network :private_network, ip: '33.33.33.11', virtualbox__intnet: "mynetwork"
     box.vm.provider :virtualbox do |vb|
-      if Vagrant.has_plugin?("vagrant-hosts") && hostetc
-        provisioner.add_host '10.0.2.2', ['rubygems.org']
-      end
       vb.gui = true
       # memory
       vb.customize ["modifyvm", :id, "--memory", "2048"]
@@ -88,10 +85,9 @@ Vagrant.configure("2") do |config|
   config.vm.define :search do |box|
     type            = 'search'
     box.vm.hostname = "#{ENV['USER']}-#{type}"
-    box.vm.box      = 'rhel64'
-    box.vm.synced_folder "/Users/#{ENV['USER']}/.chef", '/etc/chef'   
+    box.vm.box      = boxname
+    box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'   
     box.vm.synced_folder databag_path, "/var/chef/data_bags"
-    box.vm.box_url = File.join(base_box_url, 'vagrant-RHEL6_4_v1_1.box')
     box.vm.network :private_network, ip: '33.33.33.12', virtualbox__intnet: "mynetwork"
     box.vm.network :forwarded_port, host: 4431, guest: 443
     box.vm.provider :virtualbox do |vb|
@@ -126,10 +122,9 @@ Vagrant.configure("2") do |config|
   config.vm.define :searchpool do |box|
     type            = 'searchpool'
     box.vm.hostname = "#{ENV['USER']}-#{type}"
-    box.vm.box      = 'rhel64'
-    box.vm.synced_folder  "/Users/#{ENV['USER']}/.chef", '/etc/chef'   
+    box.vm.box      = boxname
+    box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'   
     box.vm.synced_folder databag_path, "/var/chef/data_bags"
-    box.vm.box_url  = File.join(base_box_url, 'vagrant-RHEL6_4_v1_1.box')
     box.vm.network :private_network, ip: '33.33.33.13', virtualbox__intnet: "mynetwork"
     box.vm.provider :virtualbox do |vb|
       vb.gui = true
@@ -164,11 +159,10 @@ Vagrant.configure("2") do |config|
   ## Splunk Deployment vbox
   config.vm.define :deployserver do |box|
     type            = 'deployserver'
-    box.vm.synced_folder "/Users/#{ENV['USER']}/.chef", '/etc/chef'
+    box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'
     box.vm.synced_folder databag_path, "/var/chef/data_bags"
     box.vm.hostname = "#{ENV['USER']}-#{type}"
-    box.vm.box      = 'rhel64'
-    box.vm.box_url  = File.join(base_box_url, 'vagrant-RHEL6_4_v1_1.box')
+    box.vm.box      = boxname
     box.vm.network :private_network, ip: '33.33.33.11', virtualbox__intnet: "mynetwork"
     box.vm.provider :virtualbox do |vb|
       vb.gui = true
@@ -202,10 +196,8 @@ Vagrant.configure("2") do |config|
   config.vm.define :imforwarder do |box|
     type            = 'imforwarder'
     box.vm.hostname = "#{ENV['USER']}-#{type}"
-    box.vm.box      = 'rhel64'
-    box.vm.synced_folder "/Users/#{ENV['USER']}/.chef", '/etc/chef'   
-    box.vm.synced_folder databag_path, "/var/chef/data_bags"
-    box.vm.box_url  = File.join(base_box_url, 'vagrant-RHEL6_4_v1_1.box')
+    box.vm.box      = boxname
+    box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'   
     box.vm.network :private_network, ip: '33.33.33.11', virtualbox__intnet: "mynetwork"
     box.vm.provider :virtualbox do |vb|
       vb.gui = true
