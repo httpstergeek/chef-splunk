@@ -1,346 +1,705 @@
-splunk Cookbook
-===============
+Chef-Splunk Cookbook
+====================
 
-This cookbook manages a Splunk Universal Forwarder (client) or a
-Splunk Enterprise (server) installation.
+This cookbook manages a Distributed Splunk Enterprise (server) Enviorment based
+on the chef-splunk cookbook by opscode. The intent of this cookbook was build
+recipes capable of managing the many role of splunk: search heads, indexer,
+heavy forwarders, deployment server, and licensing sever. Each recipe configures
+and manages the core features/settings of splunk.
+
+Tasks like licenses are still managed by the administrator. App and TA are still
+managed by the Splunk deployment server  
 
 The Splunk default user is admin and the password is changeme. See the
-`setup_auth` recipe below for more information about how to manage
-changing the password with Chef and Chef Vault.
+`setup_auth` recipe below for more information about how to manage changing the
+password with Chef and Chef Vault. This recipe downloads packages from Splunk
+from the Nexus server.There are attributes to set a URL to retrieve the
+packages.
 
-This recipe downloads packages from Splunk directly. There are
-attributes to set a URL to retrieve the packages, so if the packages
-are mirrored locally, supply the local URL instead. At this time the
-cookbook doesn't support installing from networked package managers
-(like apt or yum), since Splunk doesn't provide package repositories.
+Review the attributes section to see which attributes are required for recipe.
+
+**NOTE: Replace All Attributes with values for your ENV**
 
 ## Requirements
 
 ### Platforms
 
-This cookbook uses Test Kitchen to do cross-platform convergence and
-post-convergence tests. The tested platforms are considered supported.
-This cookbook may work on other platforms or platform versions with or
-without modification.
-
-* Debian 7
-* Ubuntu 10.04, 12.04
-* CentOS 6
-* OmniOS r151008
+This cookbook was tested on RHEL6 servers.
 
 ### Cookbooks
 
-Used for managing secrets, see __Usage__:
+* `chef-vault` - Used for managing secrets, see chef-splunk.
+* `nfs` - Used to configure NFS mount on searchpool.
+* `nix_server` - Used to configure Indexers disks.
 
-* chef-vault
+##Recipes
+**NOTE: review nix server attributes section for setting drives
+Read Templates section for discription and details regarding attributes
+driving template**
 
-## Attributes
+###searchpool.rb
+searchpool.rb configures server to be  search head pool nfs store. This reciepe
+server is the first server to be configure if search head pooling is used.
 
-Attributes have default values set in `attributes/default.rb`. Where
-possible or appropriate, the default values from Splunk Enterprise are
-used.
 
-General attributes:
+Recipe includes:
 
-* `node['splunk']['accept_license']`: Whether to accept the Splunk
-  EULA. Default is false. This *must* be set to true for Splunk to be
-  functional with this cookbook, which means end users must read the
-  EULA and agree to the terms.
-* `node['splunk']['is_server']`: Set this to true if the node is a
-  splunk server, for example in a role. Default is false.
-* `node['splunk']['disabled']`: Disable the splunk agent by setting
-  this to true. Default is false.
-* `node['splunk']['receiver_port']`: The port that the receiver
-  (server) listens to. This is set to the Splunk Enterprise default,
-  9997.
+* `chef-splunk::splunk_includes`
+* `chef-splunk::nfs_server`
 
-The two URL attributes below are selected by platform and architecture
-by default.
+Attributes:
 
-* `node['splunk']['forwarder']['url']`: The URL to the Splunk
-  Universal Forwarder package file.
-* `node['splunk']['server']['url']`: The URL to the Splunk Enterprise
-  package file.
+* `node[:splunk][:searchpool][:pool_mnt]`: creates directory where recipe will
+  copy apps, users, and system from $SPLUNK_HOME/etc/.
+* `node[:splunk][:dir_perms][:owner]`: set owner for apps, users, and system,
+  and deploymentclient.conf set by templdate.
+* `node[:splunk][:dir_perms][:group]`: set group for apps, users, system, and
+  deploymentclient.conf set by templdate.
+* `node[:splunk][:dir_perms][:mode]`: set mode for apps, users, and system, and
+  deploymentclient.conf set by template.
+* `node[:splunk][:deployment_options][:phonehome]`: used by
+  system-deploymentclient.conf.erb to set value to phone home to deployment
+  server.
+* `node[:splunk][:deployment_options][:deployment_uri]`: used by
+  system-deploymentclient.conf.erb to set ip, fqdn, or netbios for deployment
+  server.
+* `node[:splunk][:mgmt_port]`: used by system-deploymentclient.conf.erb to set
+  deployment server management port.
+* `node[:chef_vault][:version]`: version of chef-vault gem to be installed.
+* `node[:chef_vault][:source]`: set ruby gem source.
+* `node[:splunk][:user][:username]`: used to create linux user and group for
+  splunk. Also sets gid for splunk user.
+* `node[:splunk][:user][:comment]`: sets user comments for splunk user.
+* `node[:splunk][:user][:shell]`: sets users shell for splunk user.
+* `node[:splunk][:user][:uid]`: sets uid for splunk user.
+* `node['splunk']['server']['url']`: splunk download location.
+* `node[:splunk][:bypass_auth]`: used to bypass setting splunk secrets which
+  contains splunk system users configured in `chef-splunk::splunk_secrets`.
+* `node[:splunk][:secret]`: databag items for creating splunk.secret.
+* `node[:splunk][:passwd]`: databag items for creating passwd.
+* `node['splunk']['accept_license']`: accepts license at first startup.
+* `node[:splunk][:conf_files][:web][:file]`:  directory to place web.conf from
+  template.
+* `node[:splunk][:conf_files][:web][:erb]`: erb template to create web.conf.
+* `node[:splunk][:conf_files][:perms][:owner]`: sets template owner.
+* `node[:splunk][:conf_files][:perms][:group]`: sets template group.
+* `node[:splunk][:conf_files][:perms][:mode]`: sets template mode.
 
-Special attributes for managing the Splunk user:
+Templates:
 
-* `node['splunk']['user']`: A hash of attributes to set for the splunk
-  user resource in the `user` recipe. It's unlikely that someone would
-  need to change these, other than the UID, but just in case...
+* `system-deploymentclient.conf.erb`
+* `system-web.conf.erb`
 
-- `username`: the username
-- `comment`: gecos field
-- `home`: the home directory, defaults to `/opt/splunkforwarder`, will
-  be set to `/opt/splunk` if `node['splunk']['is_server']` is true.
-- `shell`: the shell to use
-- `uid`: the numeric UID. The default, `396` is an integer arbitrarily
-  chosen and doesn't conflict with anything on the supported platforms
-  (see list above). It is within the `system` UID range on Linux
-  systems.
+```
+deploymentclient.conf
+[deployment-client]
+disabled=<value>
 
-The following attributes are related to setting up `splunkweb` with
-SSL in the `setup_ssl` recipe.
-
-* `node['splunk']['ssl_options']`: A hash of SSL options used in the
-  `setup_ssl` recipe
-* `node['splunk']['ssl_options']['enable_ssl']`: Whether to enable
-  SSL, must be set to `true` to use the `setup_ssl` recipe. Defaults
-  to `false`, must be set using a boolean literal `true` or `false`.
-* `node['splunk']['ssl_options']['data_bag']`: The data bag name to
-  load, defaults to `vault` (as chef-vault is used).
-* `node['splunk']['ssl_options']['data_bag_item']`: The data bag item
-  name that contains the keyfile and crtfile, defaults to
-  `splunk_ceritficates`.
-* `node['splunk']['ssl_options']['keyfile']`: The name of the SSL key
-  file, and the content will be written to
-  `etc/auth/splunkweb/KEYFILE`. Must be an element under `data` in the
-  data bag item. See __Usage__ for instructions. Defaults to
-  '`self-signed.example.com.key`', and should be changed to something
-  relevant for the local site before use, in a role or wrapper cookbook.
-* `node['splunk']['ssl_options']['crtfile']`: The name of the SSL cert
-  (crt) file, and the content will be written to
-  `/etc/auth/splunkweb/CRTFILE`. Must be an element under `data` in
-  the data bag item. See __Usage__ for instructions. Defaults to
-  '`self-signed.example.com.crt`', and should be changed to something
-  relevant for the local site before use, in a role or wrapper cookbook.
-
-The following attributes are related to upgrades in the `upgrade`
-recipe. **Note** The version is set to 4.3.7 and should be modified to
-suit in a role or wrapper, since we don't know what upgrade versions
-may be relevant. Enabling the upgrade and blindly using the default
-URLs may have undesirable consequences, hence this is not enabled, and
-must be set explicitly elsewhere on the node(s).
-
-* `node['splunk']['upgrade_enabled']`: Controls whether the upgrade is
-  enabled and the `attributes/upgrade.rb` file should be loaded. Set
-  this in a role or wrapper cookbook to perform an upgrade.
-* `node['splunk']['upgrade']`: Sets `server_url` and `forwarder_url`
-  attributes based on platform and architecture. These are only loaded
-  if `upgrade_enabled` is set.
-
-## Definitions
-
-### splunk_installer
-
-The Splunk Enterprise and Splunk Universal Forwarder package
-installation is the same save the name of the package and the URL to
-download. This definition abstracts the package installation to a
-common baseline. Any new platform installation support should be added
-by modifying the definition as appropriate. One goal of this
-definition is to have a single occurance of a `package` resource,
-using the appropriate "local package file" provider per platform. For
-example, on RHEL, we use `rpm` and on Debian we use `dpkg`.
-
-Package files will be downloaded to Chef's file cache path (e.g.,
-`file_cache_path` in `/etc/chef/client.rb`, `/var/chef/cache` by
-default).
-
-The definition has two parameters.
-
-* `name`: The name of the package (e.g., `splunk`).
-* `url`: The URL to the package file.
-
-#### Examples
-
-For example, if the nodes in the environment are all Debian-family,
-and the desired splunkforwarder package is provided locally as
-`splunkforwarder.deb` on an internal HTTP server:
-
-```ruby
-splunk_installer 'splunkforwarder' do
-  url 'https://www-int.example.com/splunk/splunkforwarder.deb'
-end
+[target-broker:deploymentServer]
+targetUri=<value>
+```
+```
+web.conf
+startwebserver = 0
 ```
 
-The `install_forwarder` and `install_server` recipes use the
-definition with the appropriate `url` attribute.
+###search.rb
+Configures Splunk search heads with webserver settings.
 
-## Recipes
+Recipe includes:
 
-This cookbook has several composable recipes that can be used in a
-role, or a local "wrapper" cookbook. The `default`, `client`, and
-`server` recipes are intended to be used wholesale with all the
-assumptions they contain.
+* `chef-splunk::splunk_includes`
 
-The general default assumption is that a node including the `default`
-recipe will be a Splunk Universal Forwarder (client).
+Required Attributes:
 
-### client
+* `node[:chef_vault][:version]`: version of chef-vault gem to be installed.
+* `node[:chef_vault][:source]`: set ruby gem source.
+* `node[:splunk][:user][:username]`: used to create linux user and group for
+  splunk. Also sets gid for splunk user.
+* `node[:splunk][:user][:comment]`: sets user comments for splunk user.
+* `node[:splunk][:user][:shell]`: sets users shell for splunk user.
+* `node[:splunk][:user][:uid]`: sets uid for splunk user.
+* `node['splunk']['server']['url']`: splunk download location.
+* `node[:splunk][:bypass_auth]`: used to bypass setting splunk secrets which
+  contains splunk system users configured in `chef-splunk::splunk_secrets`.
+* `node[:splunk][:secret]`: databag items for creating splunk.secret.
+* `node[:splunk][:passwd]`: databag items for creating passwd.
+* `node['splunk']['accept_license']`: accepts license at first startup.
+* `node[:splunk][:ssl_options][:enable_ssl]`: enables settings loading web ssl
+  data bag, creation of certs with file mask settings.
+* `node[:splunk][:conf_files][:web][:file]`: absolute path to place web.conf
+  from template.
+* `node[:splunk][:conf_files][:web][:erb]`: erb template to create web.conf.
+* `node[:splunk][:conf_files][:distsearch][:file]`: absolute path to place
+  distsearch.conf.
+* `node[:splunk][:conf_files][:distsearch][:erb]`: erb template to create
+  distsearch.conf.
+* `node[:splunk][:conf_files][:perms][:owner]`: sets all template owner.
+* `node[:splunk][:conf_files][:perms][:group]`: sets all template group.
+* `node[:splunk][:conf_files][:perms][:mode]`: sets all template mode.
+* `node[:splunk][:searchpool][:pool_mnt]`: directory to mount search pool nfs
+  storage.
+* `node[:splunk][:searchpool][:pool_server]`: nfs search pool storage ip.
+  Combined with `node[:splunk][:searchpool][:pool_mnt]` to build device to
+  mount.
+* `node[:splunk][:searchpool][:symlink_location]`: location to create symlinks
+  for search pool mount.
+* `node[:splunk][:searchpool][:enable_pool]`: if set to "enabled" seach head
+  pooling is enabled for search head.
+* `node[:splunk][:dir_perms][:owner]`: sets symlink and directory owner.
+* `node[:splunk][:dir_perms][:group]`: sets symlink and directory group.
+* `node[:splunk][:dir_perms][:mode]`: sets symlink and directory mode.
 
-This recipe encapsulates a completely configured "client" - a Splunk
-Universal Forwarder configured to talk to a node that is the splunk
-server (with node['splunk']['is_server'] true). The recipes can be
-used on their own composed in a wrapper cookbook or role. This recipe
-will include the `user`, `install_forwarder`, `service`, and
-`setup_auth` recipes.
+Templates:
 
-It will also search a Chef Server for a Splunk Enterprise (server)
-node with `splunk_is_server:true` in the same `chef_environment` and
-write out `etc/system/local/outputs.conf` with the server's IP and the
-`receiver_port` attribute in the Splunk install directory
-(`/opt/splunkforwarder`).
+* `system-deploymentclient.conf.erb`
+* `system-web.conf.erb`
+* `system-distritsearch.conf.erb`
+* `system-server.conf.erb`
 
-### default
+```
+server.conf
+[pooling]
+state=<value>
+storage=<value>
+```
+```
+deploymentclient.conf
+[deployment-client]
+disabled=<value>
 
-The default recipe will include the `disabled` recipe if
-`node['splunk']['disabled']` is true.
+[target-broker:deploymentServer]
+targetUri=<value>
+```
+```
+web.conf
+startwebserver=0
+enableSplunkWebSSL=<value>
+privKeyPath=etc/auth/splunkweb/<value>
+caCertPath=etc/auth/splunkweb<value>
+```
+```
+distsearch.conf
+[distributedSearch]
+shareBundles=<value>
+servers=<values>
+```
 
-It will include the `client` or `server` recipe depending on whether
-the `is_server` attribute is set.
+###indexer.rb
+indexer.rb configures Splunk indexers to recives  disables webserver
+functions.
 
-The attribute use allows users to control the included recipes by
-easily manipulating the attributes of a node, or a node's roles, or
-through a wrapper cookbook.
+Recipe includes:
 
-### disabled
+* `chef-splunk::splunk_includes`
 
-In some cases it may be required to disable Splunk on a particular
-node. For example, it may be sending too much data to Splunk and
-exceed the local license capacity. To use the `disabled` recipe, set
-the `node['splunk']['disabled']` attribute to true, and include the
-recipe on the required node, or just use the `default` recipe.
+Required Attributes:
 
-### install_forwarder
+* `node[:splunk][:set_db]`: creates directory where recipe will move default
+  index location. $SPLUNK\_DB
+* `node[:splunk][:dir_perms][:owner]`: set owner all directories and files
+* `node[:splunk][:dir_perms][:group]`: set group all directories and files
+* `node[:splunk][:dir_perms][:mode]`: set mode for all directories and files
+* `node[:chef_vault][:version]`: version of chef-vault gem to be installed.
+* `node[:chef_vault][:source]`: set ruby gem source.
+* `node[:splunk][:user][:username]`: used to create linux user and group for
+  splunk. Also sets gid for splunk user.
+* `node[:splunk][:user][:comment]`: sets user comments for splunk user.
+* `node[:splunk][:user][:shell]`: sets users shell for splunk user.
+* `node[:splunk][:user][:uid]`: sets uid for splunk user.
+* `node['splunk']['server']['url']`: splunk download location.
+* `node[:splunk][:bypass_auth]`: used to bypass setting splunk secrets which
+  contains splunk system users configured in `chef-splunk::splunk_secrets`.
+* `node[:splunk][:secret]`: databag items for creating splunk.secret.
+* `node[:splunk][:passwd]`: databag items for creating passwd.
+* `node['splunk']['accept_license']`: accepts license at first startup.
+* `node[:splunk][:receiver_options][:splunktcp_ssl]`: enables splunk receiver
+  ssl, and loads data bag to create root ca and server cert files.
+* `node[:splunk][:conf_files][:inputs][:file]`: absolute path to place
+  inputs.conf.
+* `node[:splunk][:conf_files][:inputs][:erb]`: erb teamplate to create
+  inputs.conf.
+* `node[:splunk][:conf_files][:web][:file]`: absolute path to place web.conf  
+  from template.
+* `node[:splunk][:conf_files][:web][:erb]`: erb template to create web.conf.  
+* `node[:splunk][:conf_files][:distsearch][:file]`: absolute path to place
+  distsearch.conf.
+* `node[:splunk][:conf_files][:distsearch][:erb]`: erb template to create
+  distsearch.conf.
+* `node[:splunk][:conf_files][:perms][:owner]`: sets all template owner.
+* `node[:splunk][:conf_files][:perms][:group]`: sets all template group.
+* `node[:splunk][:conf_files][:perms][:mode]`: sets all template mode.
+* `node[:splunk][:distsearch][:mounted_bundles]`: enables search bundles
+* `node[:splunk][:distsearch][:search_bundles]`: search bundle locations for
+  search heads.
+* `node[:splunk][:dir_perms][:owner]`: sets symlink and directory owner.
+* `node[:splunk][:dir_perms][:group]`: sets symlink and directory group.
+* `node[:splunk][:dir_perms][:mode]`: sets symlink and directory mode.
 
-This recipe uses the `splunk_installer` definition to install the
-splunkforwarder package from the specified URL (via the
-`node['splunk']['forwarder']['url']` attribute).
+Templates:
 
-### install_server
+* `system-deploymentclient.conf.erb`
+* `system-web.conf.erb`
+* `system-distritsearch.conf.erb`
+* `system-splunk-launch.conf.erb`
+* `system-inputs.conf.erb`
+* `system-server.conf.erb`
 
-This recipe uses the `splunk_installer` definition to install the
-splunk (Enterprise server) package from the specified URL (via the
-`node['splunk']['server']['url']` attribute).
+```
+server.conf
+[license]  
+master_uri=<value>
+```
+```
+deploymentclient.conf
+[deployment-client]
+disabled=<value>
 
-### server
+[target-broker:deploymentServer]
+targetUri=<value>
+```
+```
+web.conf
+startwebserver=0
+```
+```
+distsearch.conf
+[searchhead:<value]
+mounted_bundles=<value>
+bundles_location=<values>
+```
+```
+splunk-launch.conf
+SPLUNK_HOME=/opt/splunk
+SPLUNK_SERVER_NAME=splunkd
+SPLUNK_WEB_NAME=splunkweb
+SPLUNK_DB=<value>
+```
+```
+inputs.conf
+[default]
+host=<value>
 
-This recipe encapsulates a completely configured "server" - Splunk
-Enterprise configured to receive data from Splunk Universal Forwarder
-clients. The recipe sets the attribute `node['splunk']['is_server']`
-to true, and is included from the `default` recipe if the attribute is
-true as well. The recipes can be used on their own composed in a
-wrapper cookbook or role, too. This recipe will include the `user`,
-`install_server`, `service`, and `setup_auth` recipes.
+[SSL]
+rootCA=<value>
+serverCert=<value>
 
-It will also enable Splunk Enterprise as an indexer, listening on the
-`node['splunk']['receiver_port']`.
+[splunktcp:<value>]
 
-## service
+[udp:<value>]
 
-This recipe sets up the `splunk` service, and applies to both client
-and server use, since `splunk` is the same service for both
-deployments of Splunk.
+[tcp:<value>]
+```
 
-The attribute `node['splunk']['accept_license']` must be true in order
-to set up the boot script. If it's true, then the boot script gets put
-into place (`/etc/init.d/splunk` on Linux/Unix systems), with the
-license accepted. The service is managed using the Chef `init` service
-provider, which operates by using the `/etc/init.d/splunk` script for
-start, stop, restart, etc commands.
+###deployserver.rb
+Configures Deployment server with web server and install git.
 
-## setup_auth
+Recipe includes:
 
-This recipe loads an encrypted data bag with the Splunk user
-credentials as an `-auth` string, '`user:password`', using the
-[chef-vault cookbook](http://ckbk.it/chef-vault) helper method,
-`chef_vault_item`. See __Usage__ for how to set this up. The recipe
-will edit the specified user (assuming `admin`), and then write a
-state file to `etc/.setup_admin_password` to indicate in future Chef
-runs that it has set the password. If the password should be changed,
-then that file should be removed.
+* `chef-splunk::splunk_includes`
+* `rhn_satellite`
 
-## upgrade
+Attributes:
 
-**Important** Read the upgrade documentation and release notes for any
-  particular Splunk version upgrades before performing an upgrade.
-  Also back up the Splunk directory, configuration, etc.
+* `node[:splunk][:dir_perms][:owner]`: set owner all directories and files
+* `node[:splunk][:dir_perms][:group]`: set group all directories and files
+* `node[:splunk][:dir_perms][:mode]`: set mode for all directories and files
+* `node[:splunk][:deployment_options][:phonehome]`: used by
+  system-deploymentclient.conf.erb to set value to phone home to deployment
+  server.
+* `node[:splunk][:deployment_options][:deployment_uri]`: used by
+  system-deploymentclient.conf.erb to set ip, fqdn, or netbios for deployment
+  server.
+* `node[:splunk][:mgmt_port]`: used by system-deploymentclient.conf.erb to set  
+  deployment server management port.
+* `node[:chef_vault][:version]`: version of chef-vault gem to be installed.
+* `node[:chef_vault][:source]`: set ruby gem source.
+* `node[:splunk][:user][:username]`: used to create linux user and group for
+  splunk. Also sets gid for splunk user.
+* `node[:splunk][:user][:comment]`: sets user comments for splunk user.
+* `node[:splunk][:user][:shell]`: sets users shell for splunk user.
+* `node[:splunk][:user][:uid]`: sets uid for splunk user.
+* `node['splunk']['server']['url']`: splunk download location.
+* `node[:splunk][:bypass_auth]`: used to bypass setting splunk secrets which
+  contains splunk system users configured in `chef-splunk::splunk_secrets`.
+* `node[:splunk][:secret]`: databag items for creating splunk.secret.
+* `node[:splunk][:passwd]`: databag items for creating passwd.
+* `node['splunk']['accept_license']`: accepts license at first startup.
+* `node[:splunk][:conf_files][:serverclass][:file]`: absolute path to place
+  serverclass.conf.
+* `node[:splunk][:conf_files][:serverclass][:erb]`: erb template to create
+  serverclass.conf.
+* `node[:splunk][:conf_files][:web][:file]`: absolute path to place web.conf
+  from template.
+* `node[:splunk][:conf_files][:web][:erb]`: erb template to create web.conf.
+* `node[:splunk][:conf_files][:perms][:owner]`: sets all template owner.
+* `node[:splunk][:conf_files][:perms][:group]`: sets all template group.
+* `node[:splunk][:conf_files][:perms][:mode]`: sets all template mode.
+* `node[:splunk][:iptables][:redirect]`: enables iptables for port redirection.
+* `node[:splunk][:iptables][:iptable_src]`: absolute path to place iptables.
+* `node[:splunk][:iptables][:iptable_tgt]`: erb template to create iptables.
 
-This recipe can be used to upgrade a splunk installation, for example
-from an existing 4.2.1 to 4.3.7. The default recipe can be used for
-6.0.1 after upgrading earlier versions is completed. Note that the
-attributes file is only loaded w/ the URLs to the splunk packages to
-upgrade if the `node['splunk']['upgrade_enabled']` attribute is set to
-true. We recommend setting the actual URL attributes needed in a
-wrapper cookbook or role.
+Templates:
 
-## user
+* `system-serverclass.conf.erb`
+* `system-server.conf.erb`
+* `deploy_redirect.erb`
 
-This recipe manages the `splunk` user and group. On Linux systems, the
-user and group will be created with the `system` attribute; other
-platforms may not be aware of `system` users/groups (e.g.,
-illumos/solaris). Both resources will be created with the UID or GID
-of the `node['splunk']['user']['uid']` attribute. The default value is
-396, arbitrarily chosen to fall under the `system` UID/GID set by
-`/etc/login.defs` on both RHEL and Debian family Linux systems. If
-this is a conflicting UID/GID, then modify the attribute as required.
+```
+web.conf
+startwebserver=0
+```
+```
+server.conf
+[license]  
+master_uri=<value>
+```
 
-## Usage
+###imforwarder.rb
+Configures Splunk intermediate forwarder.
 
-### Data Bag Items
+Recipe includes:
 
-#### Admin User Authentication
+* `chef-splunk::splunk_includes`
 
-Splunk admin user authentication information should be stored in a
-data bag item that is encrypted using Chef Vault. Create a data bag
-named `vault`, with an item `splunk_CHEF-ENVIRONMENT`, where
-`CHEF-ENVIRONMENT` is the `node.chef_environment` that the Splunk
-Enterprise server will be assigned. If environments are not used, use
-`_default`. For example in a Chef Repository (not in a cookbook):
+Attributes:
 
-    % cat data_bags/vault/splunk__default.json
-    {
-      "id": "splunk__default",
-      "auth": "admin:notarealpassword"
-    }
+* `node[:splunk][:dir_perms][:owner]`: set owner all directories and files
+* `node[:splunk][:dir_perms][:group]`: set group all directories and files
+* `node[:splunk][:dir_perms][:mode]`: set mode for all directories and files
+* `node[:chef_vault][:version]`: version of chef-vault gem to be installed.
+* `node[:chef_vault][:source]`: set ruby gem source.
+* `node[:splunk][:user][:username]`: used to create linux user and group for
+  splunk. Also sets gid for splunk user.
+* `node[:splunk][:user][:comment]`: sets user comments for splunk user.
+* `node[:splunk][:user][:shell]`: sets users shell for splunk user.
+* `node[:splunk][:user][:uid]`: sets uid for splunk user.
+* `node['splunk']['server']['url']`: splunk download location.
+* `node[:splunk][:bypass_auth]`: used to bypass setting splunk secrets which
+  contains splunk system users configured in `chef-splunk::splunk_secrets`.
+* `node[:splunk][:secret]`: databag items for creating splunk.secret.
+* `node[:splunk][:passwd]`: databag items for creating passwd.
+* `node['splunk']['accept_license']`: accepts license at first startup.
+* `node[:splunk][:receiver_options][:splunktcp_ssl]`: enables splunk receiver
+  ssl, and loads data bag to create root ca and server cert files.
+* `node[:splunk][:conf_files][:inputs][:file]`: absolute path to place
+  inputs.conf.
+* `node[:splunk][:conf_files][:inputs][:erb]`: erb teamplate to create
+  inputs.conf.
+* `node[:splunk][:conf_files][:web][:file]`: absolute path to place web.conf
+  from template.
+* `node[:splunk][:conf_files][:web][:erb]`: erb template to create web.conf.    .
+* `node[:splunk][:conf_files][:outputs][:file]`: absolute path to place
+  outputs.conf.
+* `node[:splunk][:conf_files][:outputs][:erb]`: erb template to create
+  outputs.conf.
+* `node[:splunk][:conf_files][:perms][:owner]`: sets all template owner.
+* `node[:splunk][:conf_files][:perms][:group]`: sets all template group.
+* `node[:splunk][:conf_files][:perms][:mode]`: sets all template mode.
 
-Or with an environment, '`production`':
+Templates:
 
-    % cat data_bags/vault/splunk_production.json
-    {
-      "id": "splunk_production",
-      "auth": "admin:notarealpassword"
-    }
+* `system-deploymentclient.conf.erb`
+* `system-web.conf.erb`
+* `system-inputs.conf.erb`
+* `system-outputs.conf.erb`
+* `system-server.conf.erb`
 
-Then, upload the data bag item to the Chef Server using the
-`chef-vault` `knife encrypt` plugin (first example, `_default`
-environment):
+```
+deploymentclient.conf
+[deployment-client]
+disabled=<value>
 
-    knife encrypt create vault splunk__default \
-        --json data_bags/vault/splunk__default.json \
-        --search 'splunk:*' --admins 'yourusername' \
-        --mode client
+[target-broker:deploymentServer]
+targetUri=<value>
+```
+```
+web.conf
+startwebserver=0
+```
+```
+inputs.conf
+[default]
+host=<value>
 
-More information about Chef Vault is available on the
-[GitHub Project Page](https://github.com/Nordstrom/chef-vault).
+[SSL]
+rootCA=<value>
+serverCert=<value>
 
-#### Web UI SSL
+[splunktcp:<value>]
 
-A Splunk server should have the Web UI available via HTTPS. This can
-be set up using self-signed SSL certificates, or "real" SSL
-certificates. This loaded via a data bag item with chef-vault. Using
-the defaults from the attributes:
+[udp:<value>]
 
-    % cat data_bags/vault/splunk_certificates.json
-    {
-      "id": "splunk_certificates",
-      "data": {
-        "self-signed.example.com.crt": "-----BEGIN CERTIFICATE-----\n...SNIP",
-        "self-signed.example.com.key": "-----BEGIN RSA PRIVATE KEY-----\n...SNIP"
-      }
-    }
+[tcp:<value>]
+```
+```
+outputs.conf
+[tcpout]
+indexAndForward=true
+```
 
-Like the authentication credentials above, run the `knife encrypt`
-command. Note the search here is for the splunk server only:
+###inputs.conf.rb
+Sets values for recieving ports such as splunktcpssl, splunktcp, tcp, udp used
+in `system-inputs.conf.erb` template.
 
-    knife encrypt create vault splunk_certificates \
-        --json data_bags/vault/splunk_certificates.json \
-        --search 'splunk_is_server:true' --admins 'yourusername' \
-        --mode client
+Attributes:
+
+* `node['splunk']['reciever_options']['splunktcp_ssl']['enable_splunktcp_ssl']`
+* `node['splunk']['reciever_options']['splunktcp_ssl']`
+* `node[:splunk][:conf_files][:perms][:owner]`
+* `node[:splunk][:conf_files][:perms][:group]`
+* `node[:splunk][:conf_files][:perms][:mode]`
+* `node[:splunk][:conf_files][:inputs][:file]`
+* `node[:splunk][:conf_files][:inputs][:erb]`
+
+Templates:
+* `system-inputs.conf.erb`
+
+###distsearch_conf.rb
+
+sets values for distsearch.conf such as shared bundles, search pool members,
+mounted bundles and mounted bundle location.
+
+Attributes:
+
+* `node[:splunk][:searchpool][:pool_mnt]`
+* `node[:splunk][:searchpool][:pool_server]`
+* `node[:splunk][:searchpool][:symlink_location]`
+* `node[:splunk][:searchpool][:enable_pool]`
+* `node[:splunk][:distsearch][:search_bundles]`
+* `node[:splunk][:dir_perms][:owner]`
+* `node[:splunk][:dir_perms][:group]`
+* `node[:splunk][:conf_files][:distsearch][:erb]`
+* `node[:splunk][:conf_files][:distsearch][:file]`
+* `node[:splunk][:conf_files][:perms][:owner]`
+* `node[:splunk][:conf_files][:perms][:group]`
+* `node[:splunk][:conf_files][:perms][:mode]`
+
+Templates:
+
+* `system-distsearch.conf.erb`
+
+###nfs_server.rb
+Configures NFS server export for nfs server.
+
+Attributes:
+
+* `node['splunk']['searchpool']['pool_mnt']`
+* `node['splunk']['searchpool']['network']`
+* `node[:splunk][:dir_perms][:owner]`
+* `node[:splunk][:dir_perms][:group]`
+* `node[:splunk][:dir_perms][:mode]`
+
+###server_conf.rb
+Configures server.conf by create a template to set search head pooling and
+licensing master.
+
+Attributes:
+
+* `node[:splunk][:conf_files][:server][:file]`
+* `node[:splunk][:conf_files][:server][:erb]`
+* `node[:splunk][:conf_files][:perms][:owner]`
+* `node[:splunk][:conf_files][:perms][:group]`
+* `node[:splunk][:conf_files][:perms][:mode]`
+
+###splunk_secrets.rb
+Uses data bags create passwd and splunk.secret file. passwd has all users and
+password pre-created.
+
+Attributes:
+
+* `node[:splunk][:secret]`
+* `node[:splunk][:passwd]`
+
+##splunk_includes.rb
+Disables iptables if running in solo mode and install chef-vault gem. Recipe has
+has all include_recipes common for all splunk roles.
+
+Attributes:
+
+* `version node[:chef_vault][:version]`
+* `options node[:chef_vault][:source]`  
+
+###web_conf.rb
+Creates cets and keys from data bags. Deploys web.conf from tempate
+
+Attributes:
+
+* `node['splunk']['ssl_options']['enable_ssl']`
+* `node['splunk']['ssl_options']`
+* `node[:splunk][:conf_files][:web][:file]`
+* `node[:splunk][:conf_files][:web][:erb]`
+* `node[:splunk][:conf_files][:perms][:owner]`
+* `node[:splunk][:conf_files][:perms][:group]`
+* `node[:splunk][:conf_files][:perms][:mode]`
+
+Templates:
+
+* `system-web.conf.erb`
+
+##Templates
+
+###system-deploymentclient.conf.rb
+Configures deploymentserver location, phoneHome intervals
+
+Attributes:
+
+* `node['splunk']['deployment_options']['phonehome']`: Sets phoneHome intervals
+  in seconds
+* `node['splunk']['deployment_options']['deployment_uri']`: Sets deployment
+  server and port.  `"<SERVER>:8089"`
+
+###system-distsearch.conf.erb
+Configures distsearch mounted bundles and search peers for search or indexers.
+
+Attributes:
+
+* `node[:splunk][:distsearch][:share_bundles]`: enables/ disables shareBundles
+* `node[:splunk][:distsearch][:search_peers]`: outputs list of
+  search peers.
+* `node[:splunk][:distsearch][:search_bundles]`: search heads and bundles
+  locations.
+
+###system-inputs.conf.erb
+Configures inputs.conf for Indexers or Intermediate forwarders
+
+Attributes:
+
+* `node['hostname']`: Sets Splunk Host Name. *DO NOT MODIFY*
+* `node['splunk']['reciever_options']['splunktcp_ssl']['enable_splunktcp_ssl']`
+  Enables SSL to be configured on indexer
+* `node['splunk']['reciever_options']['splunktcp_ssl']['root_ca']`: Value for
+  servers need to successful recieve SSL data for Forwarder.  Forwarder MUST have
+  the same root cert.
+* `node['splunk']['reciever_options']['splunktcp_ssl']['server_cert']`: Value
+  for servers need to successful recieve SSL data for Forwarder.  Forwarder MUST
+  have the same ca cert.
+* `node['splunk']['reciever_options']['splunktcp_ssl']['port']`:  splunkssltcp listening
+  port.
+* `node['splunk']['reciever_options']['splunktcp']['enable_splunktcp']`: Enables
+  standard splunktcp port on indexer
+* `node['splunk']['reciever_options']['splunktcp']['port']`: splunktcp listening
+  port
+* `node['splunk']['reciever_options']['udp']['enable_udp']`: enables udp
+  listening on indexer
+* `node['splunk']['reciever_options']['udp']['ports']`: List of ports to
+  enable for udp listening.  Values *must* be Strings.
+* `node['splunk']['reciever_options']['tcp']['enable_tcp']`: enables generic tcp
+  listening on indexer
+* `node['splunk']['reciever_options']['tcp']['ports']`: List of ports to enable
+  to for tcp listening.  Values *must* be strings
+
+###system-outputs.conf.erb
+Sets indexAndForward value for intermediate forwarders.
+
+Attributes:
+None
+
+###system-server.conf.erb
+Read default file server.conf.orig to create template.
+
+Attributes:
+
+* `node[:splunk][:searchpool][:enable_pool]`: enables/ disables search head
+  pooling.
+* `node[:splunk][:searchpool][:symlink_location]`: location to search pool
+  mounted device.
+* `node[:splunk][:license_uri]`: license master address or fqdn
+* `node[:splunk][:mgmt_port]`: splunk management port.
+
+###system-severclass.conf.erb
+Sets global serverclass.conf settings.
+
+###system-splunk-launch.conf.erb
+Sets $SPLUNK_DB location.
+
+* `node[:splunk][:set_db]`:  Absolute path to splunk DB location.
+
+###system-web.conf.erb
+Enables or disables webserver and sets SSL for webserver.
+
+Attributes:
+
+* `node[:splunk][:webserver_options][:port]`: sets web server port.
+* `node[:splunk][:webserver_options][:update_checker_url]`: sets update url to
+  off.
+* `node[:splunk][:ssl_options][:enable_ssl]`: enables SplunkWebSSL.
+* `node[:splunk][:ssl_options][:keyfile]`: privKeyPath for splunk cert.
+* `node[:splunk][:ssl_options][:crtfile]`: Splunk cert.
+
+##Usage
+**NOTE: Follow Splunk Documentation for creatin Certs**
+###Splunk Secrets
+You can uses `node[:splunk][:secrets]` to store the passwd and splunk.secret.
+Both file are typically generated at splunk start.  The splunk.secret file helps
+set the encryption key used for things like SSL key files, LDAP service
+accounts, and so on. For systems that will need to share identical copies of
+files containing splunk encrypted password data.  To generate files simple start
+a fresh install of splunk then change the admin password.
+
+```
+$SPLUNK_HOME/bin/splunk edit user admin -password -roles admin
+or
+$SPUNK_HOME/splunk add user noobie -password "changeme" \
+-full-name 'New User' -role User
+```
+The $SPLUNK_HOME/etc/passwd and $SPLUNK_HOME/etc/auth/splunk.secret can be
+copied into your data bag.
+
+```
+knife vault create vault splunk_passwd_ENV --file $SPLUNK_HOME/etc/passwd -A user
+knife vault create vault splunk_secret_ENV --file $SPLUNK_HOME/etc/auth/splunk.secret -A user
+```
+
+###WEB UI
+A Splunk server should have the Web UI available via HTTPS. This can be set up
+using self-signed SSL certificates, or "real" SSL certificates. This loaded via
+a data bag item with knife vault.
+
+```
+knife vault create vault splunk_webcert_ENV --file <yourWebCert>.pem -A user
+knife vault create vault splunk_webkey_ENV --file <yourWebCertkey>.key -A user
+```
+
+###Splunk SSL receiver
+
+A Splunk indexer and forwarder can use SSL by configuring this bag. If you you
+are using the splunk secret to on all splunk instances you can use the default
+cert.
+
+```
+knife vault create vault splunk_recrootca_ENV --file <yourRootCA>.pem -A user
+knife vault create vault splunk_recservercert_ENV --file <yourServerCert>.pem -A user
+```
+
+###Building Servers
+This cook can build a Distributed ENV soup to nuts with search pooling and
+mounted bundles.
+
+1. Setup one Search Pool NFS storage using the searchpool recipe.
+   Alternatively you can setup copy the necessary directories and files to your
+   NAS device.
+2. Configure your Search Heads using the search recipe. If you are using search
+   head pool set `node[:splunk][:searchpool]` to enabled  and list all search
+   heads uses your search pool in `node[:splunk][:distsearch][search_heads]` and
+   set `node[:splunk][:distsearch][share_bundles]` to false. Even though search
+   peers are preconfigure Administrators will still need to the user name and
+   password.
+3. Configure your Indexer use the indexer recipe.  If you which enable mounted
+   bundles set `node[:splunk][:distsearch][mounted_bundles]` to true and specify
+   `nfs_device` and `mount_location` in `node[:splunk][:distsearch]`.
+4. Configure an Intermediate forwarder use imforwarder recipe.
+5. Configure an deployment server use deployserver recipe.  Minimal settings are
+   confifured and is optional
+
+It you to the Splunk admin to determine where to install the licensing server.
+The Splunk Admin **MUST NOT MODIFY** items in $SPLUNK_HOME/etc/system/local
+directory as those are system managed.
+
 
 ## License and Authors
 
-- Author: Joshua Timberman <joshua@getchef.com>
-- Copyright 2013, Chef Software, Inc <legal@getchef.com>
+- Authors: Bernardo Macias <bmacias84s@gmail.com> & Jim Parry
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

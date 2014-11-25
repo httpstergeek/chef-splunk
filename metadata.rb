@@ -1,9 +1,9 @@
 name             'chef-splunk'
-maintainer       'Chef Software, Inc.'
-maintainer_email 'cookbooks@getchef.com'
-license          'Apache 2.0'
-description      'Manage Splunk Enterprise or Splunk Universal Forwarder'
-version          '1.0.5'
-
-# for secrets management in setup_auth recipe
-depends 'chef-vault', '>= 1.0.4'
+maintainer       'Bernardo Macias'
+maintainer_email 'bmacias84@gmail.com'
+license          'All rights reserved'
+description      'Installs/Configures chef-splunk'
+long_description 'Installs/Configures Splunk for a distributed environment.  Assume separate rolls for indexer, search, search head pool/license, and deployment server'
+version          '1.0.0'
+depends          'chef-vault', '>= 1.0.4'
+depends          'nfs'

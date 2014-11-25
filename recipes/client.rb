@@ -51,9 +51,8 @@ directory "#{splunk_dir}/etc/system/local" do
 end
 
 template "#{splunk_dir}/etc/system/local/outputs.conf" do
-  source 'outputs.conf.erb'
+  source 'system-outputs.conf.erb'
   mode 0644
-  variables :splunk_servers => splunk_servers
   notifies :restart, 'service[splunk]'
 end
 
