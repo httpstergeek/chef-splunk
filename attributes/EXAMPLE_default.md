@@ -26,7 +26,6 @@ default[:splunk][:install_git] = false
 default[:splunk][:is_server] = true
 default[:splunk][:accept_license] = true
 default[:splunk][:type] = nil
-default[:splunk][:server][:url] = 'http://10.1.1.1/pub/chef-data/software/splunk/splunk-6.0.1-189883-linux-2.6-x86_64.rpm'
 default[:splunk][:set_db] = {      
   enable: false,                   
   path:   '/opt/splunk/mnt/index01'

@@ -198,7 +198,6 @@ Vagrant.configure("2") do |config|
     box.vm.hostname = "#{ENV['USER']}-#{type}"
     box.vm.box      = boxname
     box.vm.synced_folder "#{ENV['USER']}/.chef", '/etc/chef'   
-    box.vm.synced_folder databag_path, "/var/chef/data_bags"
     box.vm.network :private_network, ip: '33.33.33.11', virtualbox__intnet: "mynetwork"
     box.vm.provider :virtualbox do |vb|
       vb.gui = true

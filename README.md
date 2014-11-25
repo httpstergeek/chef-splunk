@@ -1,4 +1,4 @@
-Chef-Splunk Cookbook
+chef-splunk Cookbook
 ====================
 
 This cookbook manages a Distributed Splunk Enterprise (server) Enviorment based
@@ -699,7 +699,7 @@ directory as those are system managed.
 
 ## License and Authors
 
-- Authors: Bernardo Macias <bmacias84s@gmail.com> & Jim Parry
+- Authors: Bernardo Macias <bmacias@httpstergeek.com> & Jim Parry
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

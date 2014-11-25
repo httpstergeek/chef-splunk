@@ -46,7 +46,6 @@ end
 
 # Recipe used store all common includes
 include_recipe 'java'
-include_recipe 'nix_server'
 include_recipe 'tuned' if %w{indexer search searchpool}.include?(node[:splunk][:type])
 include_recipe 'chef-splunk::user' if Chef::Config[:solo]
 #include_recipe 'chef-splunk::upgrade'
