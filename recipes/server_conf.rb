@@ -1,11 +1,7 @@
 # encoding: utf-8
 # Cookbook Name:: chef-splunk
 # Recipe:: indexer
-<<<<<<< HEAD
 # Author: Bernardo Macias <bmacias84@gmail.com>
-=======
-# Author: Bernardo Macias <bmacias@httpstergeek.com>
->>>>>>> 4d26d99b3f978a903c93c3180de7b0789d6970d6
 #
 # All rights reserved - Do Not Redistribute
 #
@@ -23,7 +19,6 @@
 #
 # set licensing master for search and indexers
 
-<<<<<<< HEAD
 files = {}
 ssl_options = node[:splunk][:ssl_backend_options]
 # set ssl for communications on splunk back-end
@@ -58,12 +53,6 @@ else
     'splunk_sslconfpass_default'
   )
   keyvalue = keypass['file-content']
-=======
-execute 'copy_server_conf'  do
-  command  "cp  #{node[:splunk][:conf_files][:server][:file]} #{node[:splunk][:conf_files][:server][:file]}.orig"
-  only_if { ::File.exist?(node[:splunk][:conf_files][:server][:file]) }
-  not_if { ::File.exist?("#{node[:splunk][:conf_files][:server][:file]}.orig") }
->>>>>>> 4d26d99b3f978a903c93c3180de7b0789d6970d6
 end
 
 # enables search head pooling with  nfs mount point and sets license master
@@ -72,7 +61,6 @@ template node[:splunk][:conf_files][:server][:file] do
   owner     node[:splunk][:conf_files][:perms][:owner]
   group     node[:splunk][:conf_files][:perms][:group]
   mode      node[:splunk][:conf_files][:perms][:mode]
-<<<<<<< HEAD
   variables backend_cert: files['backend_cert'], backend_ca_cert: files['backend_ca_cert'], keyvalue: keyvalue
   notifies  :restart, 'service[splunk]'
   not_if { node[:splunk][:type] == 'searchpool' }
@@ -86,9 +74,3 @@ template node[:splunk][:conf_files][:server][:file] do
   mode      node[:splunk][:conf_files][:perms][:mode]
   notifies  :restart, 'service[splunk]'
 end
-=======
-  variables included_file: "#{node[:splunk][:conf_files][:server][:file]}.orig"
-  notifies  :restart, 'service[splunk]'
-  not_if { node[:splunk][:type] == 'searchpool' }
-end
->>>>>>> 4d26d99b3f978a903c93c3180de7b0789d6970d6
